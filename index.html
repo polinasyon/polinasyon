@@ -1180,12 +1180,20 @@
             }
         };
 
-        window.onload = () => {
+                window.onload = () => {
             uygulama.veriYukle(); 
             uygulama.arayuzuGuncelle();
             uygulama.havaDurumunuYukle(uygulama.data.lat, uygulama.data.lon, uygulama.data.konum);
             if (window.lucide) window.lucide.createIcons();
+
+            // Service Worker Kaydı (Çevrimdışı Çalışma İçin)
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(() => console.log('Service Worker başarıyla kaydedildi.'))
+                    .catch((err) => console.log('Service Worker kayıt hatası:', err));
+            }
         };
+
     </script>
 </body>
 </html>
