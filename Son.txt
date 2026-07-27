@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Ana ekrana ekleme (PWA) ayarları -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1B263B">
+    <link rel="manifest" href="manifest.json">
+    <title>Konum Kaydedici</title>
+    
+    <style>
+        :root {
+            --lacivert: #1B263B;
+            --yesil: #8A9A86;
+            --arkaplan: #F4F4F9;
+            --beyaz: #FFFFFF;
+        }
+        
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--arkaplan);
+            color: var(--lacivert);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: var(--beyaz);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-top: 20px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            font-size: 22px;
+        }
+
+        button {
+            background-color: var(--yesil);
+            color: var(--beyaz);
+            border: none;
+            padding: 15px;
+            width: 100%;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 15px;
+            transition: opacity 0.2s;
+        }
+
+        button:active {
+            opacity: 0.8;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 14px;
+            color: #666;
+            position: relative;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #E0E0E0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: var(--lacivert);
+        }
+
+        input:focus {
+            border-color: var(--yesil);
+            outline: none;
+        }
+
+        #sonuc {
+            margin-top: 25px;
+            padding: 15px;
+            background-color: var(--arkaplan);
+            border-radius: 8px;
+            border-left: 4px solid var(--lacivert);
+            word-wrap: break-word;
+        }
+
+        .tarih {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        a.harita-linki {
+            display: inline-block;
+            margin-top: 10px;
+            color: var(--lacivert);
+            font-weight: bold;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Konum Kaydedici</h2>
+        
+        <!-- Otomatik Konum -->
+        <button onclick="otomatikKonumAl()">📍 Mevcut Konumumu Bul ve Kaydet</button>
+        
+        <div class="divider">VEYA</div>
+        
+        <!-- Manuel Konum -->
+        <input type="text" id="manuelGiris" placeholder="Adres veya not girin...">
+        <button onclick="manuelKonumKaydet()" style="background-color: var(--lacivert);">✍️ Manuel Kaydet</button>
+
+        <!-- Kaydedilen Veri Gösterimi -->
+        <div id="sonuc">
+            Henüz bir konum kaydedilmedi.
+        </div>
+    </div>
+
+    <script>
+        // Sayfa yüklendiğinde eski kaydı getir
+        window.onload = function() {
+            kaydiEkranaYazdir();
+        };
+
+        function otomatikKonumAl() {
+            const sonucDiv = document.getElementById("sonuc");
+            sonucDiv.innerHTML = "Konum aranıyor, lütfen bekleyin...";
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const enlem = position.coords.latitude;
+                        const boylam = position.coords.longitude;
+                        const haritaLinki = `https://www.google.com/maps?q=${enlem},${boylam}`;
+                        
+                        const kayitVerisi = {
+                            tip: "otomatik",
+                            metin: `${enlem.toFixed(6)}, ${boylam.toFixed(6)}`,
+                            link: haritaLinki,
+                            tarih: new Date().toLocaleString("tr-TR")
+                        };
+                        
+                        localStorage.setItem("kayitliKonum", JSON.stringify(kayitVerisi));
+                        kaydiEkranaYazdir();
+                    },
+                    function(error) {
+                        sonucDiv.innerHTML = "Konum alınamadı. Cihazınızın konum ayarlarını ve tarayıcı izinlerini kontrol edin.";
+                    },
+                    { enableHighAccuracy: true }
+                );
+            } else {
+                sonucDiv.innerHTML = "Tarayıcınız konum özelliğini desteklemiyor.";
+            }
+        }
+
+        function manuelKonumKaydet() {
+            const girilenDeger = document.getElementById("manuelGiris").value.trim();
+            if (girilenDeger === "") {
+                alert("Lütfen bir adres veya not girin.");
+                return;
+            }
+
+            const kayitVerisi = {
+                tip: "manuel",
+                metin: girilenDeger,
+                link: null,
+                tarih: new Date().toLocaleString("tr-TR")
+            };
+
+            localStorage.setItem("kayitliKonum", JSON.stringify(kayitVerisi));
+            document.getElementById("manuelGiris").value = ""; // Kutuyu temizle
+            kaydiEkranaYazdir();
+        }
+
+        function kaydiEkranaYazdir() {
+            const kayitliVeri = localStorage.getItem("kayitliKonum");
+            const sonucDiv = document.getElementById("sonuc");
+
+            if (kayitliVeri) {
+                const veri = JSON.parse(kayitliVeri);
+                let html = `<strong>Son Kaydedilen:</strong><br>${veri.metin}<br><div class="tarih">🕒 ${veri.tarih}</div>`;
+                
+                if (veri.link) {
+                    html += `<br><a href="${veri.link}" target="_blank" class="harita-linki">🗺️ Haritada Aç</a>`;
+                }
+                
+                sonucDiv.innerHTML = html;
+            }
+        }
+    </script>
+</body>
+</html>
