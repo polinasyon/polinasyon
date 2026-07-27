@@ -12,7 +12,7 @@
 
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-familyo: Arial, sans-serif;
             background-color: #f1f5f9;
             color: #1e293b;
             -webkit-tap-highlight-color: transparent;
@@ -1078,5 +1078,59 @@
             if (window.lucide) window.lucide.createIcons();
         };
     </script>
+    <script>
+// Kovan ve Gözlem kayıtlarını localStorage ile kaydet
+let kovans = JSON.parse(localStorage.getItem('kovans')) || [];
+let gozlemler = JSON.parse(localStorage.getItem('gozlemler')) || [];
+
+// Kovan Ekle butonuna tıklayınca
+function kovanEkle() {
+    const ad = prompt("Kovan Adı / Numara:");
+    if (!ad) return;
+    
+    kovans.push({
+        id: Date.now(),
+        ad: ad,
+        tarih: new Date().toLocaleDateString('tr-TR')
+    });
+    
+    localStorage.setItem('kovans', JSON.stringify(kovans));
+    alert("Kovan eklendi! ✅");
+    // Listeyi güncelle (kendi HTML'ine göre uyarla)
+    renderKovans();
+}
+
+// Saha Gözlemi Ekle
+function gozlemEkle() {
+    const not = prompt("Saha Gözlemi Notu:");
+    if (!not) return;
+    
+    gozlemler.push({
+        id: Date.now(),
+        not: not,
+        tarih: new Date().toLocaleString('tr-TR')
+    });
+    
+    localStorage.setItem('gozlemler', JSON.stringify(gozlemler));
+    alert("Gözlem kaydedildi! ✅");
+    renderGozlemler();
+}
+
+// Listeleri göster (örnek)
+function renderKovans() {
+    console.log("Kayıtlı Kovanlar:", kovans);
+    // Buraya kendi HTML listene ekleyebilirsin
+}
+
+function renderGozlemler() {
+    console.log("Son Gözlemler:", gozlemler);
+}
+
+// Sayfa yüklendiğinde
+window.onload = () => {
+    renderKovans();
+    renderGozlemler();
+};
+</script>
 </body>
 </html>
