@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>POLİNASYON | Kanatların Matematiği</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <meta name="theme-color" content="#f1f5f9">
+
+    <style>
+        /* Mevcut stillerin aynı kalması için */
+        body { font-family: Arial, sans-serif; background-color: #f1f5f9; color: #1e293b; -webkit-tap-highlight-color: transparent; }
+        .soft-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 4px 20px -2px rgb(15 23 42 / 0.05); }
+        .soft-card:hover { box-shadow: 0 10px 25px -5px rgb(15 23 42 / 0.08); }
+        .accent-gradient { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); }
+    </style>
+</head>
+<body class="min-h-screen pb-28">
+
+    <!-- ... (Header ve diğer kısımlar aynı kalıyor) ... -->
+
+    <!-- Konum Modal (Otomatik + Manuel) -->
+    <div id="konumModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="soft-card bg-white p-6 w-full max-w-md space-y-4">
+            <h3 class="font-bold text-slate-800">Konum Belirle</h3>
+            
+            <button onclick="uygulama.otomatikKonumAl()" 
+                    class="w-full py-4 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-2xl flex items-center justify-center gap-2">
+                <i data-lucide="navigation" class="w-5 h-5"></i>
+                Otomatik Konumumu Bul
+            </button>
+
+            <div class="text-center text-slate-400 my-2">veya</div>
+
+            <input type="text" id="sehirInput" placeholder="Manuel il/ilçe gir (Örn: Muğla, Rize, Simav)" 
+                   class="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl">
+            
+            <div class="flex gap-2">
+                <button onclick="uygulama.konumModaliniKapat()" class="flex-1 py-3 bg-slate-200 text-slate-700 font-semibold rounded-xl">İptal</button>
+                <button onclick="uygulama.sehirAraVeGuncelle()" class="flex-1 py-3 bg-amber-500 text-white font-semibold rounded-xl">Güncelle</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Geri kalan kodun (main, nav, script) aynı kalıyor -->
+    <!-- Sadece script kısmına aşağıdaki fonksiyonları ekle -->
+
+    <script>
+        const uygulama = {
+            // ... mevcut kodların ...
+
+            async otomatikKonumAl() {
+                if (!navigator.geolocation) {
+                    alert("Tarayıcın konum özelliğini desteklemiyor.");
+                    return;
+                }
+
+                try {
+                    document.getElementById('konumModal').classList.add('hidden');
+                    const pos = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+                    });
+
+                    const lat = pos.coords.latitude;
+                    const lon = pos.coords.longitude;
+
+                    // Ters geocode (şehir adı almak için)
+                    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=tr`);
+                    const data = await res.json();
+                    
+                    const sehir = data.city || data.locality || "Bilinmeyen Konum";
+                    await this.havaDurumunuYukle(lat, lon, sehir);
+
+                    alert(`✅ Konum tespit edildi: ${sehir}`);
+                } catch (err) {
+                    alert("Konum alınamadı. Lütfen manuel girin veya konum iznini açın.");
+                    this.konumModaliniAc();
+                }
+            },
+
+            // Mevcut konumModaliniAc fonksiyonunu da güncelle (istersen)
+            konumModaliniAc() {
+                document.getElementById('sehirInput').value = "";
+                document.getElementById('konumModal').classList.remove('hidden');
+            },
+
+            konumModaliniKapat() {
+                document.getElementById('konumModal').classList.add('hidden');
+            },
+
+            // ... diğer fonksiyonlar aynı kalabilir ...
+        };
+
+        window.onload = () => {
+            uygulama.arayuzuGuncelle();
+            // İlk açılışta otomatik konum sor
+            if (confirm("Konumunuz otomatik olarak tespit edilsin mi?")) {
+                uygulama.otomatikKonumAl();
+            } else {
+                uygulama.havaDurumunuYukle(39.9208, 32.8541, "Ankara");
+            }
+            if (window.lucide) window.lucide.createIcons();
+        };
+    </script>
+</body>
+</html>
