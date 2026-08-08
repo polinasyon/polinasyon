@@ -1,7 +1,6 @@
-const CACHE_NAME = 'polinasyon-static-v5';
-const DYNAMIC_CACHE = 'polinasyon-dynamic-v5';
+const CACHE_NAME = 'polinasyon-static-v6';
+const DYNAMIC_CACHE = 'polinasyon-dynamic-v6';
 
-// Projenizde bulunan sabit dosyaları (Görseller dahil) baştan tanımlıyoruz
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -9,27 +8,31 @@ const STATIC_ASSETS = [
   './ikon.png',
   './logo.png',
   './polinasyon.png',
-  './polinasyon_logo.png'
+  './polinasyon_logo.png',
+  './favicon.ico'
 ];
 
+// Kurulum
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('Statik dosyalar önbelleğe alınıyor...');
-      // Sadece bizim sunucumuzdaki statik dosyaları indirip kilitler
-      return cache.addAll(STATIC_ASSETS.map(url => new Request(url, { cache: 'reload' })));
+      console.log('[SW] Statik dosyalar önbelleğe alınıyor...');
+      return cache.addAll(
+        STATIC_ASSETS.map(url => new Request(url, { cache: 'reload' }))
+      );
     })
   );
   self.skipWaiting();
 });
 
+// Aktivasyon - eski cache'leri temizle
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
-          // Eski versiyon önbellekleri silerek telefonu şişirmesini engelleriz
           if (key !== CACHE_NAME && key !== DYNAMIC_CACHE) {
+            console.log('[SW] Eski cache siliniyor:', key);
             return caches.delete(key);
           }
         })
@@ -39,67 +42,77 @@ self.addEventListener('activate', (event) => {
   self.clientsClaim();
 });
 
-// Gelişmiş Çevrimdışı (Offline) Yakalama Stratejisi
+// Fetch stratejisi
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // 1. API İstekleri (Hava durumu, RSS): Önce Ağ, Ağ Yoksa Cache
-  if (url.hostname.includes('api.open-meteo.com') || url.hostname.includes('rss2json') || url.hostname.includes('bigdatacloud')) {
+  // 1. API istekleri → Network first, offline'da cache
+  if (
+    url.hostname.includes('api.open-meteo.com') ||
+    url.hostname.includes('rss2json') ||
+    url.hostname.includes('bigdatacloud') ||
+    url.hostname.includes('geocoding-api.open-meteo.com')
+  ) {
     event.respondWith(
       fetch(event.request)
         .then((networkResponse) => {
           const resClone = networkResponse.clone();
-          caches.open(DYNAMIC_CACHE).then((cache) => cache.put(event.request, resClone));
+          caches.open(DYNAMIC_CACHE).then((cache) => {
+            cache.put(event.request, resClone);
+          });
           return networkResponse;
         })
-        .catch(() => caches.match(event.request)) // İnternet kopuksa son API verisini döndür
+        .catch(() => caches.match(event.request))
     );
     return;
   }
 
-  // 2. HTML Ana Sayfa: Yenilemelerde güncel sürümü alabilmek için Önce Ağ, Yoksa Cache
+  // 2. Sayfa navigasyonu → Network first, offline'da index.html
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
         .then((networkResponse) => {
           const resClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, resClone);
+          });
           return networkResponse;
         })
-        .catch(() => caches.match('./index.html')) // Dağda internet yokken sayfa yenilenirse çökmez
+        .catch(() => caches.match('./index.html') || caches.match('./'))
     );
     return;
   }
 
-  // 3. Harici Kütüphaneler (Tailwind, Lucide) ve Statik Dosyalar: ÖNCE CACHE, Yoksa Ağ
-  // RAM temizlense bile 7 dakika sonra internet aranmadan direkt cache'den okunur.
+  // 3. Statik dosyalar ve kütüphaneler → Cache first
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
-        return cachedResponse; // Cache'de varsa anında döndür (İnterneti bekleme)
+        return cachedResponse;
       }
-      
-      // Cache'de yoksa indir ve dinamik cache'e kaydet (İlk açılış için)
-      return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-           // Opaque (CORS dışı) yanıtları da kütüphaneler için sakla
-           if(networkResponse && networkResponse.type === 'opaque') {
+
+      return fetch(event.request)
+        .then((networkResponse) => {
+          if (!networkResponse || networkResponse.status !== 200) {
+            // Opaque (CORS) yanıtları da sakla (Tailwind, Lucide vb.)
+            if (networkResponse && networkResponse.type === 'opaque') {
               const resClone = networkResponse.clone();
-              caches.open(DYNAMIC_CACHE).then((cache) => cache.put(event.request, resClone));
-           }
-           return networkResponse;
-        }
-        
-        const resClone = networkResponse.clone();
-        caches.open(DYNAMIC_CACHE).then((cache) => {
-          cache.put(event.request, resClone);
+              caches.open(DYNAMIC_CACHE).then((cache) => {
+                cache.put(event.request, resClone);
+              });
+            }
+            return networkResponse;
+          }
+
+          const resClone = networkResponse.clone();
+          caches.open(DYNAMIC_CACHE).then((cache) => {
+            cache.put(event.request, resClone);
+          });
+          return networkResponse;
+        })
+        .catch(() => {
+          // Offline ve cache'de yoksa sessizce geç
+          return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
         });
-        return networkResponse;
-      }).catch(() => {
-        // Hem cache'de yok hem internet yoksa hiçbir şey yapma
-      });
     })
   );
 });
-
-
