@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- PWA ve Ana Ekrana Ekleme Ayarları -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Polinasyon">
+    <link rel="manifest" href="manifest.json">
+    <title>POLİNASYON | Kanatların Matematiği</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <meta name="theme-color" content="#f1f5f9">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f1f5f9;
+            color: #1e293b;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .brand-arial {
+            font-family: Arial, sans-serif;
+        }
+
+        .soft-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 24px;
+            box-shadow: 0 4px 20px -2px rgb(15 23 42 / 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .soft-card:hover {
+            box-shadow: 0 10px 25px -5px rgb(15 23 42 / 0.08);
+        }
+
+        .accent-gradient {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        }
+
+        .nav-btn {
+            color: #64748b;
+            transition: all 0.2s;
+        }
+
+        .nav-btn-active {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+        }
+
+        .modal-enter {
+            animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .accordion-panel {
+            display: none;
+        }
+        .accordion-panel.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-28">
+
+    <!-- Header -->
+    <header class="sticky top-0 z-50 glass border-b border-slate-200">
+        <div class="max-w-xl mx-auto px-5 py-3 flex items-center justify-between">
+            <div class="w-9"></div>
+
+            <div class="text-center">
+                <h1 class="text-xl font-bold text-slate-900 leading-tight brand-arial tracking-wide">Polinasyon</h1>
+                <p class="text-[10px] text-slate-500 font-semibold tracking-wider uppercase leading-none mt-0.5 flex items-center justify-center gap-1.5">
+                    <span>Kanatların Matematiği</span>
+                    <!-- Çevrimdışı (Dağda/Arazide) Olma Uyarı Rozeti -->
+                    <span id="offlineBadge" class="hidden bg-rose-500 text-white px-1.5 py-[1px] rounded text-[8px] tracking-widest font-bold animate-pulse">ÇEVRİMDIŞI</span>
+                </p>
+            </div>
+
+            <button onclick="uygulama.verileriYedekle()" title="Verileri İndir (JSON)" class="w-9 h-9 flex items-center justify-center bg-slate-100 border border-slate-200 text-slate-600 hover:text-amber-600 transition rounded-xl">
+                <i data-lucide="download" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-xl mx-auto px-5 pt-5 space-y-5">
+
+        <!-- ANA SAYFA -->
+        <section id="sayfaAnaSayfa" class="space-y-5">
+            <div class="soft-card p-6 sm:p-8">
+                <!-- Konum Header -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 border-b border-slate-100 pb-4">
+                    <div class="flex items-center gap-2.5 overflow-hidden">
+                        <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                            <i data-lucide="map-pin" class="w-4 h-4"></i>
+                        </div>
+                        <div class="overflow-hidden">
+                            <h2 id="havaLokasyon" class="text-base sm:text-lg font-bold text-slate-800 tracking-tight truncate">Ankara</h2>
+                            <p id="bolgeFloraHaritasi" class="text-[11px] text-amber-700 font-semibold truncate">Flora: İç Anadolu Bozkır & Kekik/Ayçiçeği</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button onclick="uygulama.otomatikKonumBul()" class="flex items-center justify-center w-9 h-9 bg-slate-100 border border-slate-200 rounded-xl hover:bg-slate-200 transition text-amber-600" title="Otomatik Konumumu Bul">
+                            <i data-lucide="crosshair" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="uygulama.konumModaliniAc()" class="flex items-center justify-center gap-1.5 text-xs font-semibold px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl hover:bg-slate-200 transition text-slate-700">
+                            <i data-lucide="search" class="w-3.5 h-3.5 text-amber-500"></i>
+                            <span>Değiştir</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hava Durumu Verileri (Çiy Noktası Eklendi - 4 Sütun) -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                    <div class="bg-slate-100/70 border border-slate-200/80 rounded-2xl p-3.5 text-center">
+                        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">SICAKLIK</p>
+                        <p id="havaSicaklik" class="text-2xl font-bold text-slate-800 mt-1">--°C</p>
+                    </div>
+                    <div class="bg-slate-100/70 border border-slate-200/80 rounded-2xl p-3.5 text-center">
+                        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">BAĞIL NEM</p>
+                        <p id="havaNem" class="text-2xl font-bold text-slate-800 mt-1">--%</p>
+                    </div>
+                    <div class="bg-slate-100/70 border border-slate-200/80 rounded-2xl p-3.5 text-center">
+                        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">ÇİY NOKTASI</p>
+                        <p id="havaCiy" class="text-2xl font-bold text-slate-800 mt-1">--°C</p>
+                    </div>
+                    <div class="bg-slate-100/70 border border-slate-200/80 rounded-2xl p-3.5 text-center">
+                        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">RÜZGAR</p>
+                        <p id="havaRuzgar" class="text-2xl font-bold text-slate-800 mt-1">--</p>
+                    </div>
+                </div>
+
+                <!-- DİNAMİK NEKTAR AKIMI MODÜLÜ (YENİ TASARIM) -->
+                <div class="bg-slate-50 rounded-2xl p-5 border border-slate-200 mb-6">
+                    <div class="flex justify-between items-end mb-3">
+                        <div>
+                            <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wide">Nektar Akım Potansiyeli</h2>
+                            <div class="mt-1 flex items-center gap-2">
+                                <span id="nektarDurumEtiketi" class="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-slate-200 text-slate-600">BEKLENİYOR</span>
+                            </div>
+                        </div>
+                        <div id="nektarSkor" class="text-3xl font-black text-amber-500">%--</div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-slate-200 rounded-full h-3 mb-4 overflow-hidden">
+                        <div id="nektarBar" class="bg-amber-400 h-3 rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+                    </div>
+
+                    <p id="nektarAciklama" class="text-sm text-slate-600">
+                        Açık kaynak meteoroloji verileri analiz ediliyor...
+                    </p>
+                    
+                    <div id="dinamikDüzeltmeNotu" class="mt-2 text-[11px] font-bold hidden">
+                    </div>
+                </div>
+
+                <!-- RENK KODLU AYLIK FLORA TIMELINE & AKIM TAKVİMİ -->
+                <div class="border border-slate-200/80 bg-slate-100/60 rounded-2xl p-5 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i data-lucide="calendar-range" class="w-4 h-4 text-amber-600"></i> Aylık Flora & Akım Timeline
+                        </h3>
+                        <button onclick="uygulama.sahaRaporuModaliniAc()" class="text-[11px] font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+                            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Saha Gözlemi Ekle
+                        </button>
+                    </div>
+
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        Renk Kodları: <span class="font-bold text-emerald-700">Yeşil:</span> Güçlü Nektar | <span class="font-bold text-amber-600">Sarı:</span> Polen/Orta Akım | <span class="font-bold text-slate-500">Gri:</span> Kıtlık (Dearth)
+                    </p>
+
+                    <!-- Timeline Kutucukları -->
+                    <div id="floraTimelineContainer" class="space-y-2.5"></div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- KOVAN TAKİP SAYFASI -->
+        <section id="sayfaKovanlar" class="space-y-5 hidden">
+            <div class="soft-card p-6">
+                <!-- Kategori Görünüm Modu -->
+                <div id="kategoriAnaGorunum">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-800">Kovan Kategorileri</h2>
+                            <p class="text-xs text-slate-500">Arılık sahalarınız</p>
+                        </div>
+                        <button onclick="uygulama.yeniKategoriModaliniAc()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Yeni Kategori
+                        </button>
+                    </div>
+                    <div id="kategoriListesiContainer" class="space-y-3"></div>
+                </div>
+
+                <!-- Seçilen Kategori Detay / Kovan Listesi -->
+                <div id="kategoriDetayGorunum" class="hidden">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <button onclick="uygulama.kategoriGorunumuneDon()" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition">
+                                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                            </button>
+                            <div>
+                                <h2 id="aktifKategoriBaslik" class="text-base font-bold text-slate-800">Kategori</h2>
+                                <p class="text-[11px] text-slate-500">Kayıtlı kovanlar</p>
+                            </div>
+                        </div>
+                        <button onclick="uygulama.aktifKategoriyeKovanEkleModaliniAc()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Kovan Ekle
+                        </button>
+                    </div>
+                    <div id="aktifKovanlarContainer" class="space-y-3"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SAĞLIK SAYFASI -->
+        <section id="sayfaSaglik" class="space-y-5 hidden">
+            <div class="soft-card p-6">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">Koloni Sağlığı & Varroa Rehberi</h2>
+                        <p class="text-xs text-slate-500">Pratik bakım ve entegre parazit yönetimi</p>
+                    </div>
+                    <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                        <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="p-4 rounded-2xl border border-amber-200/80 bg-amber-50/40 space-y-1">
+                        <h4 class="font-bold text-sm text-amber-900 flex items-center gap-2">
+                            <i data-lucide="flask-conical" class="w-4 h-4 text-amber-600"></i> Formik Asit Kullanım Önerisi
+                        </h4>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Formik asit, kapalı yavrulu hücrelerin içine nüfuz edebilen tek organik asittir. Hava sıcaklığının <strong>15°C - 25°C</strong> arasında olduğu dönemlerde %65'lik konsantrasyon ile yavaş buharlaştırma aparatları kullanarak uygulayın.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-2xl border border-slate-200 bg-white space-y-1">
+                        <h4 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                            <i data-lucide="droplets" class="w-4 h-4 text-amber-500"></i> Oksalik Asit (Kuluçkasız Dönem)
+                        </h4>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Geç sonbahar ve erken ilkbaharda kapalı kuluçka bulunmadığında oksalik asit buharlaştırma veya damlatma yöntemi %95 üzeri Varroa başarısı sağlar. Tekrar kuluçka başlamadan önce mutlaka uygulayın.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-2xl border border-slate-200 bg-white space-y-1">
+                        <h4 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                            <i data-lucide="layers" class="w-4 h-4 text-amber-500"></i> Petek Yenileme & Hijyen Stratejisi
+                        </h4>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Eski ve koyu renkli petekler patojen ve varroa kalıntılarını barındırır. Her sezon kuluçkalıktaki peteklerin en az <strong>1/3'ünü</strong> yeni temel petekler ile değiştirin.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-2xl border border-slate-200 bg-white space-y-1">
+                        <h4 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                            <i data-lucide="wind" class="w-4 h-4 text-amber-500"></i> Rutin Bakım & Havalandırma
+                        </h4>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Yaz aylarında nem ve yüksek ısı kovan içi mantar ve stres kaynaklarını artırır. Varroa çekmeceli fileli tabanlar tercih ederek kovan hava sirkülasyonunu üst seviyede tutun.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-2xl border border-slate-200 bg-white space-y-1">
+                        <h4 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                            <i data-lucide="activity" class="w-4 h-4 text-amber-500"></i> Varroa Popülasyon Testi (Pudra Şekeri)
+                        </h4>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Ayda bir kez kuluçkalıktan alınan yaklaşık 300 işçi arı üzerinde pudra şekeri testi uygulayın. %3'un üzerindeki bulaşıklık oranında derhal entegre mücadele başlatın.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- AKADEMİ SAYFASI -->
+        <section id="sayfaAkademi" class="space-y-5 hidden">
+            <div class="soft-card p-6 space-y-4">
+                <div class="border border-slate-200/80 bg-slate-50 rounded-2xl p-3.5 flex items-center justify-between shadow-2xs">
+                    <div class="flex items-center gap-4 text-slate-700">
+                        <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="hover:text-amber-600 transition" title="Facebook">
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                        </a>
+                        <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" class="hover:text-amber-600 transition" title="X (Twitter)">
+                            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        </a>
+                        <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="hover:text-amber-600 transition" title="Instagram">
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                        </a>
+                        <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" class="hover:text-amber-600 transition" title="YouTube">
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                        </a>
+                    </div>
+                    <span class="text-xs font-bold text-slate-800 tracking-wide">@polinasyon</span>
+                </div>
+
+                <!-- Makale Listesi -->
+                <div class="space-y-3" id="makaleListesiContainer">
+                    <p class="text-center py-12 text-slate-400 text-xs">Yayınlar yükleniyor...</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Konum Modal -->
+    <div id="konumModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="soft-card bg-white p-6 w-full max-w-md space-y-4 modal-enter shadow-xl">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base">Konum Değiştir</h3>
+                <button onclick="uygulama.konumModaliniKapat()" class="text-slate-400 hover:text-slate-600 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div>
+                <input type="text" id="sehirInput" placeholder="İl veya İlçe yazın (Örn: Muğla, Fethiye)..." class="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-amber-500">
+            </div>
+            <div class="flex gap-2">
+                <button onclick="uygulama.konumModaliniKapat()" class="flex-1 py-3 bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">İptal</button>
+                <button onclick="uygulama.sehirAraVeGuncelle()" class="flex-1 py-3 bg-amber-500 text-white text-xs font-semibold rounded-xl">Güncelle</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saha Gözlemi Ekleme Modalı -->
+    <div id="sahaRaporuModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="soft-card bg-white p-6 w-full max-w-md space-y-4 modal-enter shadow-xl">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base">Saha Gözlemi Raporla</h3>
+                <button onclick="uygulama.sahaRaporuModaliniKapat()" class="text-slate-400 hover:text-slate-600 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Gözlem Türü</label>
+                    <select id="raporTurInput" class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold">
+                        <option value="Nektar Akımı">Güçlü Nektar Akımı Başladı</option>
+                        <option value="Polen Akımı">Yoğun Polen Girişi Var</option>
+                        <option value="Kuraklık/Kıtlık">Flora Kurudu / Dearth (Kıtlık)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Bölgedeki Hakim Çiçek/Bitki</label>
+                    <input type="text" id="raporBitkiInput" placeholder="Örn: Kestane, Kekik, Ayçiçeği..." class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Arıcı Notu</label>
+                    <textarea id="raporNotInput" rows="2" placeholder="Gözlemlerinizi paylaşın..." class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs"></textarea>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="uygulama.sahaRaporuModaliniKapat()" class="flex-1 py-3 bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">İptal</button>
+                <button onclick="uygulama.sahaRaporuKaydet()" class="flex-1 py-3 bg-amber-500 text-white text-xs font-semibold rounded-xl">Raporu Gönder</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kategori Ekleme Modal -->
+    <div id="kategoriModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="soft-card bg-white p-6 w-full max-w-md space-y-4 modal-enter shadow-xl">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base">Yeni Kategori Ekle</h3>
+                <button onclick="uygulama.yeniKategoriModaliniKapat()" class="text-slate-400 hover:text-slate-600 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div>
+                <input type="text" id="kategoriIsimInput" placeholder="Örn: Merkez, Saha 1..." class="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-amber-500">
+            </div>
+            <div class="flex gap-2">
+                <button onclick="uygulama.yeniKategoriModaliniKapat()" class="flex-1 py-3 bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">İptal</button>
+                <button onclick="uygulama.kategoriKaydet()" class="flex-1 py-3 bg-amber-500 text-white text-xs font-semibold rounded-xl">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kovan Detay & Geçmiş Kontrol Modal -->
+    <div id="kovanDetayModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="soft-card bg-white p-6 w-full max-w-lg space-y-4 modal-enter shadow-xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-base">Kovan Gelişim & İstatistik Takibi</h3>
+                    <p class="text-[11px] text-slate-500">Bal verimi ve kontrol geçmişi</p>
+                </div>
+                <button onclick="uygulama.kovanDetayModaliniKapat()" class="text-slate-400 hover:text-slate-600 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <input type="hidden" id="editKovanId">
+
+            <div class="space-y-3 bg-slate-100/70 p-4 rounded-2xl border border-slate-200/80">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-500 mb-1">Kovan Adı / No</label>
+                        <input type="text" id="detayIsim" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-500 mb-1">Ana Arı Yaşı</label>
+                        <input type="text" id="detayAnaAri" placeholder="Örn: 2025" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-3 border border-amber-200/60 bg-gradient-to-br from-amber-50/40 to-orange-50/20 p-4 rounded-2xl">
+                <h4 class="font-bold text-xs text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <i data-lucide="calendar-check" class="w-4 h-4 text-amber-600"></i> Kontrol Kaydı Ekle
+                </h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-600 mb-1">Güncel Bal (kg)</label>
+                        <input type="number" step="0.5" id="yeniBal" placeholder="Örn: 7" class="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-xs focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-600 mb-1">Hastalık / Durum</label>
+                        <input type="text" id="yeniHastalik" placeholder="Örn: Sağlıklı" class="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-xs focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-slate-600 mb-1">Not / Gözlem</label>
+                    <textarea id="yeniNot" rows="2" placeholder="Durum özeti..." class="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-xs focus:outline-none focus:border-amber-500"></textarea>
+                </div>
+                <button type="button" onclick="uygulama.yeniKontrolEkle()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-xl transition shadow-sm flex items-center justify-center gap-1.5">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i> Kaydı Ekle & Güncelle
+                </button>
+            </div>
+
+            <div class="space-y-2">
+                <h4 class="font-bold text-xs text-slate-700 flex items-center gap-1.5">
+                    <i data-lucide="trending-up" class="w-4 h-4 text-amber-600"></i> Bal Verimi Eğilimi
+                </h4>
+                <div id="gelisimGrafigi" class="p-4 bg-slate-100 border border-slate-200 rounded-2xl flex items-end gap-2 h-28 overflow-x-auto"></div>
+            </div>
+
+            <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                    <h4 class="font-bold text-xs text-slate-700">Geçmiş Kayıtlar</h4>
+                    <button type="button" onclick="uygulama.kontrolGecmisiniSifirla()" class="text-[10px] text-rose-500 hover:underline font-semibold">Tümünü Sıfırla</button>
+                </div>
+                <div id="gecmisKontrollerListesi" class="space-y-2 max-h-40 overflow-y-auto pr-1"></div>
+            </div>
+
+            <div class="flex gap-2 pt-2 border-t border-slate-200">
+                <button type="button" onclick="uygulama.kovanDetayModaliniKapat()" class="w-full py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-xl transition">Kapat / Tamam</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 glass border-t border-slate-200 z-40">
+        <div class="max-w-xl mx-auto px-2 py-2.5 flex justify-around items-center">
+            <button onclick="uygulama.sayfaDegistir('AnaSayfa')" id="navAnaSayfa" class="nav-btn nav-btn-active flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl text-[11px] font-medium">
+                <i data-lucide="home" class="w-5 h-5"></i>
+                <span>Ana Sayfa</span>
+            </button>
+            <button onclick="uygulama.sayfaDegistir('Kovanlar')" id="navKovanlar" class="nav-btn flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl text-[11px] font-medium">
+                <i data-lucide="box" class="w-5 h-5"></i>
+                <span>Kovan Takip</span>
+            </button>
+            <button onclick="uygulama.sayfaDegistir('Saglik')" id="navSaglik" class="nav-btn flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl text-[11px] font-medium">
+                <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                <span>Sağlık</span>
+            </button>
+            <button onclick="uygulama.sayfaDegistir('Akademi')" id="navAkademi" class="nav-btn flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl text-[11px] font-medium">
+                <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+                <span>Akademi</span>
+            </button>
+        </div>
+    </nav>
+
+    <script>
+        // İNTERNET DURUMUNU DİNLE VE ROZETİ YÖNET
+        window.addEventListener('offline', () => {
+            document.getElementById('offlineBadge').classList.remove('hidden');
+        });
+        window.addEventListener('online', () => {
+            document.getElementById('offlineBadge').classList.add('hidden');
+            // İnternet geldiğinde hava durumunu otomatik tazele
+            uygulama.havaDurumunuYukle(uygulama.data.lat, uygulama.data.lon, uygulama.data.konum);
+        });
+
+        // Sayfa ilk açıldığında internet yoksa direkt uyarıyı göster
+        if (!navigator.onLine) {
+            window.addEventListener('DOMContentLoaded', () => {
+                document.getElementById('offlineBadge').classList.remove('hidden');
+            });
+        }
+
+        // Service Worker Kaydı (Çevrimdışı PWA desteği için)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch((err) => {
+                    console.log('SW Kayıt hatası:', err);
+                });
+            });
+        }
+
+        const uygulama = {
+            data: {
+                konum: "Ankara",
+                lat: 39.9208,
+                lon: 32.8541,
+                temp: 22,
+                humidity: 65,
+                dewPoint: 12, // Çiy noktası eklendi
+                windSpeed: 8,
+                kategoriler: [
+                    {
+                        id: 1,
+                        isim: "Merkez",
+                        kovanlar: [
+                            {
+                                id: 101,
+                                isim: "Kovan #1",
+                                anaAri: "2024",
+                                gecmisKontroller: [
+                                    { tarih: "2026-06-01", bal: 4, hastalik: "Yok", not: "İlk kontrol, kovan gelişiyor." }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                sahaGozlemleri: []
+            },
+            aktifKategoriId: null,
+            aktifDuzenlenenKovanId: null,
+
+            veriKaydet() {
+                localStorage.setItem('polinasyon_data_v2', JSON.stringify(this.data));
+            },
+            
+            veriYukle() {
+                const kayitli = localStorage.getItem('polinasyon_data_v2');
+                if (kayitli) {
+                    try {
+                        const parsed = JSON.parse(kayitli);
+                        this.data = { ...this.data, ...parsed }; 
+                    } catch(e) {
+                        console.error("Veri yüklenemedi", e);
+                    }
+                }
+            },
+
+            otomatikKonumBul() {
+                if (!navigator.geolocation) {
+                    alert("Tarayıcınız konum bulma özelliğini desteklemiyor.");
+                    return;
+                }
+                
+                const lokasyonEl = document.getElementById('havaLokasyon');
+                const eskiKonum = lokasyonEl.textContent;
+                lokasyonEl.textContent = "GPS Aranıyor...";
+                
+                navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        
+                        try {
+                            const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=tr`);
+                            const data = await res.json();
+                            
+                            let sehirAd = data.city || data.locality || data.principalSubdivision || "Bulunan Konum";
+                            
+                            await uygulama.havaDurumunuYukle(lat, lon, sehirAd);
+                            
+                        } catch(e) {
+                            console.error("Şehir adı çözülemedi:", e);
+                            await uygulama.havaDurumunuYukle(lat, lon, "Mevcut Konum");
+                        }
+                    }, 
+                    (error) => {
+                        console.warn("Konum Hatası:", error);
+                        let mesaj = "Konum alınamadı.";
+                        if (error.code === 1) mesaj = "Konum izni verilmedi. Lütfen tarayıcı/telefon ayarlarından konum erişimine izin verin.";
+                        else if (error.code === 2) mesaj = "Konum bilgisine ulaşılamıyor. Lütfen telefonunuzun GPS'ini açın.";
+                        else if (error.code === 3) mesaj = "Konum bulma isteği zaman aşımına uğradı.";
+                        
+                        alert(mesaj);
+                        lokasyonEl.textContent = eskiKonum; 
+                    }, 
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            },
+
+            // Genişletilmiş ve Zenginleştirilmiş Flora Veritabanı
+            floraVeritabanı: {
+                "ankara": { flora: "İç Anadolu Bozkır & Kekik/Ayçiçeği", timeline: [
+                    { ay: "Mayıs", bitki: "Meyve Çiçekleri / Akasya", verim: 75, tur: "polen" },
+                    { ay: "Haziran", bitki: "Yayla Florası / Adaçayı", verim: 90, tur: "nektar" },
+                    { ay: "Temmuz", bitki: "Kekik / Ayçiçeği", verim: 85, tur: "nektar" },
+                    { ay: "Ağustos", bitki: "Meşe Salgısı / Kurak Dönem", verim: 30, tur: "kıtlık" }
+                ]},
+                "muğla": { flora: "Ege Çam Balı & Püren Florası", timeline: [
+                    { ay: "Mayıs", bitki: "Narenciye / Hayıt", verim: 80, tur: "nektar" },
+                    { ay: "Haziran", bitki: "Kekik / Dağ Florası", verim: 85, tur: "nektar" },
+                    { ay: "Ağustos", bitki: "Çam Pamuklu Koşnili (Çam Balı)", verim: 95, tur: "nektar" },
+                    { ay: "Eylül", bitki: "Çam Balı Zirve", verim: 98, tur: "nektar" }
+                ]},
+                "izmir": { flora: "Ege Maki & Narenciye Florası", timeline: [
+                    { ay: "Nisan", bitki: "Narenciye / Meyve", verim: 85, tur: "nektar" },
+                    { ay: "Mayıs", bitki: "Hayıt / Püren / Çayır", verim: 80, tur: "nektar" },
+                    { ay: "Temmuz", bitki: "Sıcaklık Stresi (Kuraklık)", verim: 25, tur: "kıtlık" },
+                    { ay: "Eylül", bitki: "Çam Salgısı / Sonbahar Çiçekleri", verim: 85, tur: "nektar" }
+                ]},
+                "rize": { flora: "Karadeniz Kestane & Ormangülü (Anzer)", timeline: [
+                    { ay: "Mayıs", bitki: "Komar / Ormangülü", verim: 85, tur: "nektar" },
+                    { ay: "Haziran", bitki: "Kestane Çiçeği", verim: 95, tur: "nektar" },
+                    { ay: "Temmuz", bitki: "Yayla Çiçekleri", verim: 90, tur: "nektar" },
+                    { ay: "Ağustos", bitki: "Orman Altı Flora", verim: 40, tur: "polen" }
+                ]},
+                "kütahya": { flora: "Ege Geçiş Bölgesi (Kestane & Çam)", timeline: [
+                    { ay: "Mayıs", bitki: "Meyve Çiçekleri / Çayır", verim: 70, tur: "polen" },
+                    { ay: "Haziran", bitki: "Kestane / Ihlamur", verim: 90, tur: "nektar" },
+                    { ay: "Temmuz", bitki: "Kekik / Ayçiçeği", verim: 80, tur: "nektar" },
+                    { ay: "Ağustos", bitki: "Çam Salgısı / Kurak Dönem", verim: 60, tur: "kıtlık" }
+                ]},
+                "simav": { flora: "Ege Geçiş Bölgesi Kestane & Çam", timeline: [
+                    { ay: "Mayıs", bitki: "Çayır Çiçekleri / Meyve", verim: 70, tur: "polen" },
+                    { ay: "Haziran", bitki: "Kestane & Ihlamur Akımı", verim: 90, tur: "nektar" },
+                    { ay: "Temmuz", bitki: "Kekik / Orman Altı Florası", verim: 85, tur: "nektar" },
+                    { ay: "Ağustos", bitki: "Çam Salgısı Başlangıcı", verim: 75, tur: "nektar" }
+                ]},
+                "antalya": { flora: "Akdeniz Narenciye & Maki", timeline: [
+                    { ay: "Nisan", bitki: "Portakal / Narenciye", verim: 95, tur: "nektar" },
+                    { ay: "Mayıs", bitki: "Maki Florası (Hayıt/Püren)", verim: 85, tur: "nektar" },
+                    { ay: "Temmuz", bitki: "Aşırı Sıcaklık Stresi", verim: 20, tur: "kıtlık" },
+                    { ay: "Eylül", bitki: "Keçiboynuzu / Çam", verim: 80, tur: "nektar" }
+                ]},
+                "erzurum": { flora: "Doğu Anadolu Yüksek Yayla Florası", timeline: [
+                    { ay: "Mayıs", bitki: "Uyanma & İlk Polen", verim: 60, tur: "polen" },
+                    { ay: "Haziran", bitki: "Korunga & Yonca", verim: 85, tur: "nektar" },
+                    { ay: "Temmuz", bitki: "Yüksek Yayla Zirve Akımı", verim: 95, tur: "nektar" },
+                    { ay: "Ağustos", bitki: "Alpin Çayırları / Çiçek Balı", verim: 80, tur: "nektar" }
+                ]},
+                "varsayılan": { flora: "Çeşitli Yayla & Tarım Çiçekleri", timeline: [
+                    { ay: "Mayıs", bitki: "Bahar Çiçekleri", verim: 70, tur: "polen" },
+                    { ay: "Haziran", bitki: "Ana Akım Florası", verim: 90, tur: "nektar" },
+                    { ay: "Temmuz", bitki: "Ayçiçeği / Otsu Bitkiler", verim: 80, tur: "nektar" },
+                    { ay: "Ağustos", bitki: "Yaz Sonu Kuraklığı", verim: 35, tur: "kıtlık" }
+                ]}
+            },
+
+            // Gelişmiş Nektar Skoru Algoritması (Çiy Noktası Entegrasyonlu)
+            nectar_flow_score(temp, humidity, wind_speed, dew_point) {
+                const temp_score = Math.max(0, 1 - Math.abs(temp - 24) / 12);
+                const hum_score = Math.max(0, 1 - Math.abs(humidity - 65) / 30);
+                const dew_score = Math.max(0, 1 - Math.abs(dew_point - 14) / 10);
+                const wind_score = Math.max(0, 1 - wind_speed / 25);
+
+                // Ağırlıklar: Sıcaklık %35, Nem %25, Çiy Noktası %20, Rüzgar %20
+                const total = (temp_score * 0.35 + hum_score * 0.25 + dew_score * 0.20 + wind_score * 0.20) * 100;
+                return Math.round(total);
+            },
+
+            nektarAkimiHesaplaVeGuncelle() {
+                const temp = this.data.temp;
+                const humidity = this.data.humidity;
+                const wind = this.data.windSpeed;
+                const dew = this.data.dewPoint;
+
+                const skor = this.nectar_flow_score(temp, humidity, wind, dew);
+
+                document.getElementById('nektarSkor').textContent = `%${skor}`;
+                document.getElementById('nektarBar').style.width = `${skor}%`;
+
+                const etiket = document.getElementById('nektarDurumEtiketi');
+                const aciklama = document.getElementById('nektarAciklama');
+                const dinamikNot = document.getElementById('dinamikDüzeltmeNotu');
+                
+                // Gizli bloğu görünür yap
+                dinamikNot.style.display = 'flex'; 
+
+                if (skor >= 70) {
+                    etiket.textContent = "GÜÇLÜ";
+                    etiket.className = "text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800";
+                    aciklama.textContent = `Sıcaklık (${temp}°C), Çiy Noktası (${dew}°C) ve Nem (%${humidity}) uyumu bitki nektar salgısını maksimuma çıkarıyor.`;
+                    dinamikNot.className = "mt-2 text-[11px] font-bold text-emerald-700 bg-emerald-50 p-2 rounded-xl border border-emerald-200/60 flex items-center gap-1.5";
+                    dinamikNot.innerHTML = `<i data-lucide="zap" class="w-3.5 h-3.5"></i> <span>Optimum Turgor Bonusu: Akım Potansiyeli +${Math.round(skor/3)}%</span>`;
+                } else if (skor >= 40) {
+                    etiket.textContent = "ORTA";
+                    etiket.className = "text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800";
+                    aciklama.textContent = `Koşullar nektar akımı için makul seviyede. Buharlaşma veya sıcaklık stresi salgıyı bir miktar sınırlıyor olabilir.`;
+                    dinamikNot.className = "mt-2 text-[11px] font-bold text-amber-700 bg-amber-50 p-2 rounded-xl border border-amber-200/60 flex items-center gap-1.5";
+                    dinamikNot.innerHTML = `<i data-lucide="info" class="w-3.5 h-3.5"></i> <span>Hava Etkisi: Akım Dengeli (Nötr)</span>`;
+                } else {
+                    etiket.textContent = "ZAYIF";
+                    etiket.className = "text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-rose-100 text-rose-800";
+                    aciklama.textContent = `Aşırı rüzgar, ideal olmayan çiy noktası veya nem dengesizliği bitki stresini artırarak nektarı kısıtlıyor.`;
+                    dinamikNot.className = "mt-2 text-[11px] font-bold text-rose-700 bg-rose-50 p-2 rounded-xl border border-rose-200/60 flex items-center gap-1.5";
+                    dinamikNot.innerHTML = `<i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> <span>İklim Kısıtlaması: Akım -${Math.round((100-skor)/2)}%</span>`;
+                }
+                
+                // Dinamik içerik sonrası ikonları tekrar renderla
+                if (window.lucide) window.lucide.createIcons();
+            },
+
+            timelineCiz() {
+                const container = document.getElementById('floraTimelineContainer');
+                
+                const konumKucuk = this.data.konum.toLocaleLowerCase('tr-TR');
+                
+                let secilenVeri = this.floraVeritabanı["varsayılan"];
+                let ozelBulundu = false;
+
+                for (let anahtar in this.floraVeritabanı) {
+                    if (anahtar !== "varsayılan" && konumKucuk.includes(anahtar)) {
+                        secilenVeri = this.floraVeritabanı[anahtar];
+                        ozelBulundu = true;
+                        break;
+                    }
+                }
+
+                let floraMetni = ozelBulundu 
+                    ? secilenVeri.flora 
+                    : `${this.data.konum} ve Çevresi (${secilenVeri.flora})`;
+                
+                document.getElementById('bolgeFloraHaritasi').textContent = `Flora: ${floraMetni}`;
+
+                let html = '';
+                secilenVeri.timeline.forEach(t => {
+                    let renkSınıf = "bg-emerald-50 border-emerald-300 text-emerald-900";
+                    let barSınıf = "bg-emerald-500";
+                    let etiket = "Güçlü Nektar";
+
+                    if (t.tur === "polen") {
+                        renkSınıf = "bg-amber-50 border-amber-300 text-amber-900";
+                        barSınıf = "bg-amber-500";
+                        etiket = "Polen / Orta Akım";
+                    } else if (t.tur === "kıtlık") {
+                        renkSınıf = "bg-slate-100 border-slate-300 text-slate-700";
+                        barSınıf = "bg-slate-400";
+                        etiket = "Kıtlık (Dearth)";
+                    }
+
+                    html += `
+                        <div class="p-3 rounded-xl border ${renkSınıf} flex flex-col gap-1.5 shadow-2xs">
+                            <div class="flex justify-between items-center text-xs font-bold">
+                                <span>${t.ay} — ${t.bitki}</span>
+                                <span>%${t.verim} (${etiket})</span>
+                            </div>
+                            <div class="w-full bg-white/70 h-2 rounded-full overflow-hidden">
+                                <div class="${barSınıf} h-full rounded-full" style="width: ${t.verim}%"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                if (this.data.sahaGozlemleri && this.data.sahaGozlemleri.length > 0) {
+                    html += `<div class="mt-3 border-t border-slate-200 pt-2"><p class="text-[11px] font-bold text-slate-700 mb-1">Son Saha Gözlemleri (Crowdsourcing):</p>`;
+                    this.data.sahaGozlemleri.forEach(g => {
+                        html += `
+                            <div class="p-2 bg-white rounded-lg border border-slate-200 text-[11px] text-slate-600 mb-1">
+                                <span class="font-bold text-slate-800">${g.tarih}</span> - <span class="text-amber-700 font-semibold">${g.tur}</span> (${g.bitki}): ${g.not}
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                }
+
+                container.innerHTML = html;
+            },
+
+            sahaRaporuModaliniAc() {
+                document.getElementById('sahaRaporuModal').classList.remove('hidden');
+            },
+
+            sahaRaporuModaliniKapat() {
+                document.getElementById('sahaRaporuModal').classList.add('hidden');
+            },
+
+            sahaRaporuKaydet() {
+                const tur = document.getElementById('raporTurInput').value;
+                const bitki = document.getElementById('raporBitkiInput').value.trim() || "Genel Flora";
+                const not = document.getElementById('raporNotInput').value.trim() || "Gözlem kaydedildi.";
+                const tarih = new Date().toISOString().split('T')[0];
+
+                if(!this.data.sahaGozlemleri) this.data.sahaGozlemleri = [];
+                this.data.sahaGozlemleri.push({ tarih, tur, bitki, not });
+                this.veriKaydet();
+                
+                this.sahaRaporuModaliniKapat();
+                this.timelineCiz();
+            },
+
+            async havaDurumunuYukle(lat, lon, sehirAd) {
+                document.getElementById('havaLokasyon').textContent = sehirAd;
+                this.data.konum = sehirAd;
+                this.data.lat = lat;
+                this.data.lon = lon;
+
+                try {
+                    // API isteğine dew_point_2m eklendi
+                    const res = await fetch(
+                        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,dew_point_2m&timezone=auto&models=icon_eu,ecmwf_ifs04,best_match`,
+                        { cache: 'no-cache' }
+                    );
+                    const data = await res.json();
+                    
+                    this.data.temp = Math.round(data.current.temperature_2m);
+                    this.data.humidity = Math.round(data.current.relative_humidity_2m); 
+                    this.data.dewPoint = Math.round(data.current.dew_point_2m);
+                    this.data.windSpeed = Math.round(data.current.wind_speed_10m);
+
+                    document.getElementById('havaSicaklik').textContent = `${this.data.temp}°C`;
+                    document.getElementById('havaNem').textContent = `%${this.data.humidity}`;
+                    document.getElementById('havaCiy').textContent = `${this.data.dewPoint}°C`;
+                    document.getElementById('havaRuzgar').textContent = `${this.data.windSpeed} km/s`;
+
+                    // Çevrimdışı kullanım için son hava verilerini yerel hafızaya sakla
+                    localStorage.setItem('polinasyon_last_weather', JSON.stringify({
+                        temp: this.data.temp,
+                        humidity: this.data.humidity,
+                        dewPoint: this.data.dewPoint,
+                        windSpeed: this.data.windSpeed,
+                        time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+                    }));
+
+                } catch(e) {
+                    console.warn("Canlı hava verisi çekilemedi, önbelleğe bakılıyor: ", e);
+                    
+                    // İnternet olmaması durumunda en son kaydedilen veriyi getir
+                    const sonHava = localStorage.getItem('polinasyon_last_weather');
+                    if (sonHava) {
+                        try {
+                            const parsed = JSON.parse(sonHava);
+                            this.data.temp = parsed.temp;
+                            this.data.humidity = parsed.humidity;
+                            this.data.dewPoint = parsed.dewPoint || 12;
+                            this.data.windSpeed = parsed.windSpeed;
+                            
+                            document.getElementById('havaSicaklik').textContent = `${this.data.temp}°C`;
+                            document.getElementById('havaNem').textContent = `%${this.data.humidity}`;
+                            document.getElementById('havaCiy').textContent = `${this.data.dewPoint}°C`;
+                            document.getElementById('havaRuzgar').textContent = `${this.data.windSpeed} km/s`;
+                        } catch(err) {
+                            console.error("Önbellekteki hava durumu okunamadı", err);
+                        }
+                    }
+                }
+
+                this.veriKaydet(); 
+                this.nektarAkimiHesaplaVeGuncelle();
+                this.timelineCiz();
+            },
+
+            arayuzuGuncelle() {
+                const kategoriContainer = document.getElementById('kategoriListesiContainer');
+                if (!this.data.kategoriler || this.data.kategoriler.length === 0) {
+                    kategoriContainer.innerHTML = `<p class="text-center py-8 text-slate-400 text-xs">Henüz kategori bulunmuyor.</p>`;
+                    return;
+                }
+
+                let html = '';
+                this.data.kategoriler.forEach(kat => {
+                    const kovanSayisi = kat.kovanlar ? kat.kovanlar.length : 0;
+                    html += `
+                        <div onclick="uygulama.kategoriSec(${kat.id})" class="soft-card p-4 cursor-pointer hover:border-amber-400 flex items-center justify-between group transition">
+                            <div class="flex items-center gap-3.5">
+                                <div class="w-11 h-11 rounded-2xl bg-amber-50 group-hover:bg-amber-500 group-hover:text-white text-amber-600 flex items-center justify-center transition shrink-0">
+                                    <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-slate-800 text-base">${kat.isim}</h3>
+                                    <p class="text-[11px] text-slate-500 mt-0.5">${kovanSayisi} Kayıtlı Kovan</p>
+                                </div>
+                            </div>
+                            <div class="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-amber-600 transition">
+                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                    `;
+                });
+                kategoriContainer.innerHTML = html;
+                if (window.lucide) window.lucide.createIcons();
+            },
+
+            kategoriSec(id) {
+                this.aktifKategoriId = id;
+                const kat = this.data.kategoriler.find(k => k.id === id);
+                if (!kat) return;
+
+                document.getElementById('aktifKategoriBaslik').textContent = kat.isim;
+                document.getElementById('kategoriAnaGorunum').classList.add('hidden');
+                document.getElementById('kategoriDetayGorunum').classList.remove('hidden');
+
+                this.aktifKovanlariCiz(kat.kovanlar);
+            },
+
+            kategoriGorunumuneDon() {
+                this.aktifKategoriId = null;
+                document.getElementById('kategoriDetayGorunum').classList.add('hidden');
+                document.getElementById('kategoriAnaGorunum').classList.remove('hidden');
+                this.arayuzuGuncelle();
+            },
+
+            aktifKovanlariCiz(kovanlar) {
+                const container = document.getElementById('aktifKovanlarContainer');
+                if (!kovanlar || kovanlar.length === 0) {
+                    container.innerHTML = `<p class="text-center py-12 text-slate-400 text-xs">Bu kategoride henüz kovan bulunmuyor.</p>`;
+                    return;
+                }
+
+                let html = '';
+                kovanlar.forEach(k => {
+                    const sonKontrol = k.gecmisKontroller && k.gecmisKontroller.length > 0 ? k.gecmisKontroller[k.gecmisKontroller.length - 1] : null;
+                    const sonBal = sonKontrol ? `${sonKontrol.bal} kg` : '0 kg';
+                    const sonNot = sonKontrol ? (sonKontrol.not.length > 45 ? sonKontrol.not.substring(0, 42) + '...' : sonKontrol.not) : 'Kayıt yok.';
+
+                    html += `
+                        <div class="p-4 rounded-2xl border border-slate-200 bg-white flex items-center justify-between hover:border-amber-400 transition cursor-pointer shadow-2xs" onclick="uygulama.kovanDetayModaliniAc(${k.id})">
+                            <div class="flex-1 pr-3">
+                                <div class="flex items-center gap-2">
+                                    <h4 class="font-bold text-sm text-slate-800">${k.isim}</h4>
+                                    <span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-lg">Bal: ${sonBal}</span>
+                                    <span class="text-[10px] font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg">Ana: ${k.anaAri || '—'}</span>
+                                </div>
+                                <p class="text-xs text-slate-600 mt-1 line-clamp-1">${sonNot}</p>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <button type="button" onclick="event.stopPropagation(); uygulama.kovanSil(${k.id})" class="text-slate-400 hover:text-rose-500 p-2 transition rounded-lg hover:bg-rose-50" title="Sil">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+                if (window.lucide) window.lucide.createIcons();
+            },
+
+            kovanDetayModaliniAc(kovanId) {
+                const kat = this.data.kategoriler.find(k => k.id === this.aktifKategoriId);
+                if (!kat) return;
+                const kovan = kat.kovanlar.find(k => k.id === kovanId);
+                if (!kovan) return;
+
+                this.aktifDuzenlenenKovanId = kovanId;
+
+                document.getElementById('editKovanId').value = kovan.id;
+                document.getElementById('detayIsim').value = kovan.isim || "";
+                document.getElementById('detayAnaAri').value = kovan.anaAri || "";
+                document.getElementById('yeniBal').value = "";
+                document.getElementById('yeniHastalik').value = "";
+                document.getElementById('yeniNot').value = "";
+
+                this.gecmisKontrolleriCiz(kovan.gecmisKontroller);
+                this.gelisimGrafigiCiz(kovan.gecmisKontroller);
+
+                document.getElementById('kovanDetayModal').classList.remove('hidden');
+                if (window.lucide) window.lucide.createIcons();
+            },
+
+            kovanDetayModaliniKapat() {
+                const kat = this.data.kategoriler.find(k => k.id === this.aktifKategoriId);
+                if(kat && this.aktifDuzenlenenKovanId) {
+                     const kovan = kat.kovanlar.find(k => k.id === this.aktifDuzenlenenKovanId);
+                     if(kovan) {
+                         kovan.isim = document.getElementById('detayIsim').value.trim() || kovan.isim;
+                         kovan.anaAri = document.getElementById('detayAnaAri').value.trim() || kovan.anaAri;
+                         this.veriKaydet();
+                     }
+                }
+
+                document.getElementById('kovanDetayModal').classList.add('hidden');
+                if (kat) this.aktifKovanlariCiz(kat.kovanlar);
+                this.arayuzuGuncelle();
+            },
+
+            yeniKontrolEkle() {
+                const isim = document.getElementById('detayIsim').value.trim();
+                const anaAri = document.getElementById('detayAnaAri').value.trim();
+                const balInput = document.getElementById('yeniBal').value;
+                const bal = balInput !== "" ? parseFloat(balInput) : null;
+                const hastalik = document.getElementById('yeniHastalik').value.trim() || "Yok";
+                const not = document.getElementById('yeniNot').value.trim() || "Kontrol gerçekleştirildi.";
+                const tarih = new Date().toISOString().split('T')[0];
+
+                const kat = this.data.kategoriler.find(k => k.id === this.aktifKategoriId);
+                if (!kat) return;
+                const kovan = kat.kovanlar.find(k => k.id === this.aktifDuzenlenenKovanId);
+                if (!kovan) return;
+
+                if (isim) kovan.isim = isim;
+                if (anaAri) kovan.anaAri = anaAri;
+
+                if (bal !== null) {
+                    if (!kovan.gecmisKontroller) kovan.gecmisKontroller = [];
+                    kovan.gecmisKontroller.push({ tarih, bal, hastalik, not });
+                }
+
+                document.getElementById('yeniBal').value = "";
+                document.getElementById('yeniHastalik').value = "";
+                document.getElementById('yeniNot').value = "";
+
+                this.veriKaydet(); 
+
+                this.gecmisKontrolleriCiz(kovan.gecmisKontroller);
+                this.gelisimGrafigiCiz(kovan.gecmisKontroller);
+            },
+
+            gecmisKontrolleriCiz(kontroller) {
+                const container = document.getElementById('gecmisKontrollerListesi');
+                if (!kontroller || kontroller.length === 0) {
+                    container.innerHTML = `<p class="text-center py-4 text-slate-400 text-xs">Henüz kontrol kaydı yok.</p>`;
+                    return;
+                }
+
+                let html = '';
+                [...kontroller].reverse().forEach((k, idx) => {
+                    const gercekIdx = kontroller.length - 1 - idx;
+                    let trendIkon = '<i data-lucide="minus" class="w-3.5 h-3.5 text-slate-400"></i>';
+                    if(gercekIdx > 0) {
+                        const onceki = kontroller[gercekIdx - 1].bal;
+                        if(k.bal > onceki) trendIkon = '<i data-lucide="trending-up" class="w-3.5 h-3.5 text-emerald-500"></i>';
+                        else if(k.bal < onceki) trendIkon = '<i data-lucide="trending-down" class="w-3.5 h-3.5 text-rose-500"></i>';
+                    }
+
+                    html += `
+                        <div class="p-3 rounded-xl border border-slate-200 bg-white flex items-center justify-between text-xs shadow-2xs">
+                            <div>
+                                <div class="flex items-center gap-2 font-bold text-slate-800">
+                                    <span>${k.tarih}</span>
+                                    <span class="text-amber-600 bg-amber-50 px-2 py-0.5 rounded">${k.bal} kg</span>
+                                    <span class="text-slate-500 font-normal">(${k.hastalik})</span>
+                                </div>
+                                <p class="text-slate-600 mt-1">${k.not}</p>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                ${trendIkon}
+                                <button type="button" onclick="uygulama.kontrolSil(${gercekIdx})" class="text-slate-300 hover:text-rose-500 p-1"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+                if (window.lucide) window.lucide.createIcons();
+            },
+
+            kontrolSil(idx) {
+                const kat = this.data.kategoriler.find(k => k.id === this.aktifKategoriId);
+                if (!kat) return;
+                const kovan = kat.kovanlar.find(k => k.id === this.aktifDuzenlenenKovanId);
+                if (!kovan) return;
+
+                kovan.gecmisKontroller.splice(idx, 1);
+                
+                this.veriKaydet(); 
+                
+                this.gecmisKontrolleriCiz(kovan.gecmisKontroller);
+                this.gelisimGrafigiCiz(kovan.gecmisKontroller);
+            },
+
+            gelisimGrafigiCiz(kontroller) {
+                const container = document.getElementById('gelisimGrafigi');
+                if (!kontroller || kontroller.length === 0) {
+                    container.innerHTML = `<p class="text-center text-xs text-slate-400 w-full m-auto">Grafik için kayıtlı bal verisi yok.</p>`;
+                    return;
+                }
+
+                const maxBal = Math.max(...kontroller.map(k => Number(k.bal) || 0), 10);
+                let html = '';
+
+                kontroller.forEach((k, idx) => {
+                    const yuzde = Math.max(15, Math.round((Number(k.bal) / maxBal) * 100));
+                    let renk = "bg-amber-400";
+                    if (idx > 0) {
+                        const onceki = Number(kontroller[idx - 1].bal);
+                        if (k.bal > onceki) renk = "bg-emerald-500";
+                        else if (k.bal < onceki) renk = "bg-rose-500";
+                    }
+
+                    html += `
+                        <div class="flex flex-col items-center gap-1 flex-1 h-full justify-end group relative">
+                            <span class="text-[10px] font-bold text-slate-700">${k.bal}kg</span>
+                            <div style="height: ${yuzde}%" class="w-full ${renk} rounded-t-lg transition-all duration-500"></div>
+                            <span class="text-[9px] text-slate-500 truncate w-full text-center">${k.tarih.slice(5)}</span>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            },
+
+            kontrolGecmisiniSifirla() {
+                if(!confirm("Tüm geçmiş kontrol kayıtları sıfırlansın mı?")) return;
+                const kat = this.data.kategoriler.find(k => k.id === this.aktifKategoriId);
+                if (!kat) return;
+                const kovan = kat.kovanlar.find(k => k.id === this.aktifDuzenlenenKovanId);
+                if (!kovan) return;
+
+                kovan.gecmisKontroller = [];
+                
+                this.veriKaydet();
+                
+                this.gecmisKontrolleriCiz(kovan.gecmisKontroller);
+                this.gelisimGrafigiCiz(kovan.gecmisKontroller);
+            },
+
+            kovanSil(kovanId) {
+                if(!confirm("Bu kovanı tamamen silmek istediğinize emin misiniz?")) return;
+                const kat = this.data.kategoriler.find(k => k.id === this.aktifKategoriId);
+                if (kat) {
+                    kat.kovanlar = kat.kovanlar.filter(k => k.id !== kovanId);
+                    
+                    this.veriKaydet(); 
+                    
+                    this.aktifKovanlariCiz(kat.kovanlar);
+                    this.arayuzuGuncelle();
+                }
+            },
+
+            konumModaliniAc() {
+                document.getElementById('sehirInput').value = "";
+                document.getElementById('konumModal').classList.remove('hidden');
+                document.getElementById('sehirInput').focus();
+            },
+
+            konumModaliniKapat() {
+                document.getElementById('konumModal').classList.add('hidden');
+            },
+
+            async sehirAraVeGuncelle() {
+                const aranan = document.getElementById('sehirInput').value.trim();
+                if (!aranan) return;
+                this.konumModaliniKapat();
+                try {
+                    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(aranan)}&count=1&language=tr&format=json`);
+                    const data = await res.json();
+                    if (data && data.results && data.results.length > 0) {
+                        const yer = data.results[0];
+                        await this.havaDurumunuYukle(yer.latitude, yer.longitude, yer.name);
+                    } else {
+                        alert("Aranan konum bulunamadı.");
+                    }
+                } catch(e) {
+                    alert("Arama hatası.");
+                }
+            },
+
+            yeniKategoriModaliniAc() {
+                document.getElementById('kategoriIsimInput').value = "";
+                document.getElementById('kategoriModal').classList.remove('hidden');
+                document.getElementById('kategoriIsimInput').focus();
+            },
+
+            yeniKategoriModaliniKapat() {
+                document.getElementById('kategoriModal').classList.add('hidden');
+            },
+
+            kategoriKaydet() {
+                const isim = document.getElementById('kategoriIsimInput').value.trim();
+                if (!isim) return;
+                this.data.kategoriler.push({ id: Date.now(), isim: isim, kovanlar: [] });
+                
+                this.veriKaydet(); 
+                
+                this.yeniKategoriModaliniKapat();
+                this.arayuzuGuncelle();
+            },
+
+            aktifKategoriyeKovanEkleModaliniAc() {
+                const yeniId = Date.now();
+                const kat = this.data.kategoriler.find(k => k.id === this.aktifKategoriId);
+                if (!kat) return;
+                const yeniKovan = {
+                    id: yeniId,
+                    isim: "Kovan #" + (kat.kovanlar.length + 1),
+                    anaAri: new Date().getFullYear().toString(),
+                    gecmisKontroller: [
+                        { tarih: new Date().toISOString().split('T')[0], bal: 0, hastalik: "Yok", not: "İlk kurulum kaydı." }
+                    ]
+                };
+                kat.kovanlar.push(yeniKovan);
+                
+                this.veriKaydet(); 
+                
+                this.aktifKovanlariCiz(kat.kovanlar);
+                this.kovanDetayModaliniAc(yeniId);
+            },
+
+            sayfaDegistir(sayfaId) {
+                if(sayfaId === 'Kovanlar') this.kategoriGorunumuneDon();
+                ['AnaSayfa', 'Kovanlar', 'Saglik', 'Akademi'].forEach(s => {
+                    const el = document.getElementById('sayfa' + s);
+                    const nav = document.getElementById('nav' + s);
+                    if (s.toLowerCase() === sayfaId.toLowerCase()) {
+                        el?.classList.remove('hidden');
+                        nav?.classList.add('nav-btn-active');
+                        if (s === 'Akademi') this.rssYukle();
+                    } else {
+                        el?.classList.add('hidden');
+                        nav?.classList.remove('nav-btn-active');
+                    }
+                });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            },
+
+            async rssYukle() {
+                const container = document.getElementById('makaleListesiContainer');
+                container.innerHTML = `<p class="text-center py-12 text-slate-400 text-xs">Yayınlar yükleniyor...</p>`;
+                try {
+                    const targetUrl = encodeURIComponent("https://www.polinasyon.org/atom.xml?redirect=false&start-index=1&max-results=50");
+                    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${targetUrl}`);
+                    const data = await res.json();
+                    if (data && data.items && data.items.length > 0) {
+                        let html = '';
+                        data.items.forEach(item => {
+                            const descClean = item.description ? item.description.replace(/<[^>]*>?/gm, '').substring(0, 200) : "Detay bulunmuyor.";
+                            html += `
+                                <div class="rounded-2xl border border-slate-200 bg-white overflow-hidden mb-3">
+                                    <div onclick="this.nextElementSibling.classList.toggle('active')" class="p-4 cursor-pointer flex justify-between items-center hover:bg-slate-50 transition">
+                                        <h4 class="font-semibold text-sm text-slate-800">${item.title}</h4>
+                                        <span class="text-xs text-slate-400">▼</span>
+                                    </div>
+                                    <div class="accordion-panel px-4 pb-4 pt-2 border-t border-slate-100 text-xs text-slate-600">
+                                        <p class="mb-3">${descClean}...</p>
+                                        <a href="${item.link}" target="_blank" class="text-amber-600 font-bold underline inline-block">Devamını Oku →</a>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        container.innerHTML = html;
+                    }
+                } catch(e) {
+                    container.innerHTML = `<p class="text-center py-6 text-slate-400 text-xs">Yayınlar yüklenemedi. <a href="https://www.polinasyon.org" target="_blank" class="text-amber-600 underline">Ziyaret et</a></p>`;
+                }
+            },
+
+            verileriYedekle() {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.data));
+                const dl = document.createElement('a');
+                dl.setAttribute("href", dataStr);
+                dl.setAttribute("download", "polinasyon_yedek.json");
+                dl.click();
+            }
+        };
+
+        window.onload = () => {
+            uygulama.veriYukle(); 
+            uygulama.arayuzuGuncelle();
+            uygulama.havaDurumunuYukle(uygulama.data.lat, uygulama.data.lon, uygulama.data.konum);
+            if (window.lucide) window.lucide.createIcons();
+        };
+    </script>
+</body>
+</html>
+
+
